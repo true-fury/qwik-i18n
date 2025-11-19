@@ -1,0 +1,4 @@
+{
+    "title": "Qwik-I18N",
+    "description": "This is a complete, production-ready i18n implementation for Qwik (Qwik City) that works with SSR, resumability, and lazy-loading of translations."
+}
