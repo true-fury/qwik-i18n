@@ -2,10 +2,8 @@
 import fs from 'fs';
 import path from 'path';
 import { i18nConfig } from '~/i18n/config';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
+const basePath = path.join(process.cwd(), 'src', 'i18n', 'locales');
 
 export const getServerLocale = (request: Request): string => {
   const cookie = request.headers.get('cookie');
@@ -22,8 +20,6 @@ export const getServerLocale = (request: Request): string => {
 
 export function loadNamespaceSync(locale: string, namespace: string): Record<string, string> {
   const loc = i18nConfig.supportedLocales.includes(locale) ? locale : i18nConfig.defaultLocale;
-  
-  const basePath = path.join(__dirname, '../locales');
   const nsPath = path.join(basePath, `${loc}/${namespace}.json`);
   
   console.log('Trying to load:', nsPath);
@@ -37,7 +33,7 @@ export function loadNamespaceSync(locale: string, namespace: string): Record<str
   return JSON.parse(content);
 }
 
-export function useTranslateSSR(locale: string, namespace: string, keyPrefix?: string) {
+export function getTranslate(locale: string, namespace: string, keyPrefix?: string) {
   const data = loadNamespaceSync(locale, namespace);
 
   const getNested = (obj: any, path: string): string | undefined => {

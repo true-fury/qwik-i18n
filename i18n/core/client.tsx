@@ -46,6 +46,7 @@ export const I18nProvider = component$((props: { locale: string; initialTranslat
   });
 
   // Ensure client-side sync with cookie on mount (in case of manual cookie changes)
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(() => {
     const cookieMatch = document.cookie.match(new RegExp(`${i18nConfig.cookieName}=([^;]+)`));
     const cookieLang = cookieMatch ? cookieMatch[1] : null;
@@ -55,6 +56,7 @@ export const I18nProvider = component$((props: { locale: string; initialTranslat
   });
 
   // Watch locale change and potentially reload, but since per-ns, handled in useTranslate
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => localeSig.value);
     // Optional: global reload if you want, but better per-hook
@@ -77,6 +79,8 @@ export const useTranslate = (
   const translations = useStore<Record<string, any>>(ctx.translations[namespace] || {});
 
   const loaded = useSignal(Object.keys(translations).length > 0); // initial check if SSR provided
+
+  // eslint-disable-next-line qwik/no-use-visible-task
   useVisibleTask$(({ track }) => {
     track(() => locale);
     if (!loaded.value) {
