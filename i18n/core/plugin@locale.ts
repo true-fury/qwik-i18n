@@ -18,39 +18,43 @@ import { i18nConfig } from '~/i18n/config';
 export const localePlugin: RequestHandler = async ({ request, params, url, cookie, redirect, next }) => {
   const { defaultLocale, supportedLocales, cookieName, cookieMaxAge } = i18nConfig;
 
-  // 1️⃣ Extract locale from URL params (sync with route changes)
-  let lang = params[cookieName]; // usually params.locale if route is /:locale/...
+  let lang = params[cookieName];
   const segments = url.pathname.split('/').filter(Boolean);
-
-  // 2️⃣ Check cookie (primary reference for user preference)
   const cookieLang = cookie.get(cookieName)?.value;
 
-  // If URL contains a valid locale, use it and update cookie if necessary
+  // Trust valid URL locale and sync cookie
   if (lang && supportedLocales.includes(lang)) {
     if (cookieLang !== lang) {
       cookie.set(cookieName, lang, { path: '/', maxAge: cookieMaxAge });
     }
   } else {
-    // If URL locale is invalid, fall back to cookie if valid
     lang = cookieLang && supportedLocales.includes(cookieLang) ? cookieLang : '';
   }
 
-  // 3️⃣ Fallback to Accept-Language header if locale still not determined
+  // Fallback to Accept-Language
   if (!lang) {
     const accept = request.headers.get('accept-language');
-    const langs = accept?.split(',').map(l => l.split(';')[0].trim()) || [];
-    lang = langs.find(l => supportedLocales.includes(l)) || defaultLocale;
+    const preferred = accept
+      ?.split(',')
+      .map(l => l.split(';')[0].trim().toLowerCase())
+      .find(l => supportedLocales.includes(l));
+    lang = preferred || defaultLocale;
   }
 
-  // 4️⃣ Always set the cookie to ensure full synchronization
+  // Always sync cookie
   cookie.set(cookieName, lang, { path: '/', maxAge: cookieMaxAge });
 
-  // 5️⃣ Ensure the URL path is correctly prefixed with the locale
-  if (!segments[0] || !supportedLocales.includes(segments[0]) || segments[0] !== lang) {
-    const newPath = ['', lang, ...segments.slice(supportedLocales.includes(segments[0]) ? 1 : 0)].join('/');
+  // CRITICAL FIX: Only enforce locale prefix if it's missing or invalid
+  const firstSegment = segments[0];
+  const hasValidPrefix = firstSegment && supportedLocales.includes(firstSegment);
+
+  if (!firstSegment || !hasValidPrefix) {
+    // Replace invalid prefix OR add missing one
+    const cleanSegments = firstSegment ? segments.slice(1) : segments;
+    const newPath = '/' + [lang, ...cleanSegments].join('/') + (url.pathname.endsWith('/') ? '/' : '');
     throw redirect(302, newPath);
   }
 
-  // Continue to the next middleware or route handler
+  // If URL already has a valid locale (even if different from preferred), respect it!
   await next();
 };
